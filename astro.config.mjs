@@ -12,6 +12,7 @@ export default defineConfig({
           items: [
             { label: 'Halaman Utama', link: '/' },
             { label: 'Pendahuluan', link: '/pengantar/' },
+            { label: 'Daftar Rujukan & Referensi', link: '/referensi/' },
           ],
         },
         {
