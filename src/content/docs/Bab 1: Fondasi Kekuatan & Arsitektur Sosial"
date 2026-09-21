@@ -1,7 +1,7 @@
 title: "Bab 1: Fondasi Kekuatan & Arsitektur Sosial"
 description: "Kajian terperinci mengenai pembentukan kader di Darul Arqam, analisis geopolitik Hijrah, dan konsolidasi sosial-ekonomi Madinah."
 ---
-
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 import RegisterForm from '../../components/RegisterForm.astro';
 
 ## 1. Pembentukan Kutlah Ideologis di Makkah (Fase Kutlah & Binaan)
