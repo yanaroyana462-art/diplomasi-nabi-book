@@ -1,0 +1,172 @@
+<div class="register-wrapper">
+  <!-- FORM UNTUK USER BARU -->
+  <div id="form-container" class="form-box">
+    <h3>Akses Bab Lanjutan E-Book</h3>
+    <p class="subtitle">Isi data diri untuk membuka akses Bab 2 sampai Bab 10</p>
+    
+    <div id="reg-error" class="error-msg"></div>
+
+    <form id="register-form">
+      <div class="field">
+        <label>Nama Lengkap</label>
+        <input type="text" id="user-name" required placeholder="Contoh: Ahmad Abdullah" />
+      </div>
+      <div class="field">
+        <label>Nomor WhatsApp</label>
+        <input type="tel" id="user-wa" required placeholder="08123456789" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="user-email" required placeholder="nama@email.com" />
+      </div>
+      <button type="submit" id="btn-submit" class="submit-btn">Dapatkan Akses Penuh Sekarang</button>
+    </form>
+  </div>
+
+  <!-- TAMPILAN JIKA MENUNGGU VERIFIKASI ADMIN -->
+  <div id="pending-container" class="form-box hidden">
+    <div class="status-icon">⏳</div>
+    <h3>Pendaftaran Berhasil!</h3>
+    <p class="pending-text">
+      Terima kasih <strong id="pending-name"></strong>. Akun Anda sedang ditinjau oleh Admin.<br>
+      Akses materi bab 2-10 akan aktif otomatis setelah disetujui.
+    </p>
+    <button id="btn-refresh" class="submit-btn outline">Cek Status Akses</button>
+  </div>
+
+  <!-- TAMPILAN JIKA TERVERIFIKASI -->
+  <div id="verified-container" class="form-box hidden">
+    <div class="status-icon">✅</div>
+    <h3>Akses Diberikan!</h3>
+    <p class="pending-text">Selamat, Anda memiliki akses penuh ke seluruh materi e-book.</p>
+    <a href="/bab-2-active-listening" class="submit-btn">Lanjut Membaca Bab 2 &rarr;</a>
+  </div>
+</div>
+
+<style>
+  .register-wrapper { max-width: 480px; margin: 2rem auto; }
+  .form-box { background: #1e293b; border: 1px solid #334155; padding: 2rem; border-radius: 1rem; color: #f8fafc; text-align: left; }
+  .form-box h3 { font-size: 1.2rem; color: #fff; margin-bottom: 0.2rem; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: #94a3b8; text-align: center; margin-bottom: 1.5rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.8rem; color: #cbd5e1; margin-bottom: 0.4rem; }
+  .field input { width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem; padding: 0.6rem; color: #fff; outline: none; }
+  .field input:focus { border-color: #10b981; }
+  .submit-btn { display: block; width: 100%; text-align: center; background: #059669; color: white; padding: 0.75rem; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer; text-decoration: none; margin-top: 1rem; }
+  .submit-btn:hover { background: #10b981; }
+  .submit-btn.outline { background: transparent; border: 1px solid #059669; color: #34d399; }
+  .submit-btn.outline:hover { background: rgba(16, 185, 129, 0.1); }
+  .hidden { display: none !important; }
+  .error-msg { background: rgba(225,29,72,0.2); border: 1px solid #f43f5e; color: #fecdd3; font-size: 0.8rem; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; display: none; }
+  .status-icon { font-size: 3rem; text-align: center; margin-bottom: 0.5rem; }
+  .pending-text { font-size: 0.85rem; color: #cbd5e1; text-align: center; line-height: 1.5; }
+</style>
+
+<script>
+  import { initializeApp } from "firebase/app";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+  import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCg6eupoPoUVVdMcmFBdA4P8XomPOn019U",
+    authDomain: "landing-page-web-komunikasi.firebaseapp.com",
+    projectId: "landing-page-web-komunikasi",
+    storageBucket: "landing-page-web-komunikasi.firebasestorage.app",
+    messagingSenderId: "614908449393",
+    appId: "1:614908449393:web:632c82619784d69ed1c1d0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const formContainer = document.getElementById("form-container");
+  const pendingContainer = document.getElementById("pending-container");
+  const verifiedContainer = document.getElementById("verified-container");
+  const registerForm = document.getElementById("register-form");
+  const regError = document.getElementById("reg-error");
+  const pendingName = document.getElementById("pending-name");
+  const btnRefresh = document.getElementById("btn-refresh");
+
+  // Pengecekan Sesi Login Realtime
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Dengarkan perubahan data user dari Firestore secara realtime
+      onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.isVerified === true) {
+            // User sudah diverifikasi Admin
+            formContainer?.classList.add("hidden");
+            pendingContainer?.classList.add("hidden");
+            verifiedContainer?.classList.remove("hidden");
+          } else {
+            // User sudah mendaftar tapi masih diawasi Admin
+            formContainer?.classList.add("hidden");
+            verifiedContainer?.classList.add("hidden");
+            pendingContainer?.classList.remove("hidden");
+            if (pendingName) pendingName.textContent = data.name || "Pembaca";
+          }
+        } else {
+          // Belum daftar (Dokumen Firestore tidak ada)
+          showRegisterForm();
+        }
+      }, (err) => {
+        showRegisterForm();
+      });
+    } else {
+      showRegisterForm();
+    }
+  });
+
+  function showRegisterForm() {
+    formContainer?.classList.remove("hidden");
+    pendingContainer?.classList.add("hidden");
+    verifiedContainer?.classList.add("hidden");
+  }
+
+  // Proses Pendaftaran
+  registerForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (regError) regError.style.display = "none";
+
+    const name = (document.getElementById("user-name") as HTMLInputElement).value;
+    const whatsapp = (document.getElementById("user-wa") as HTMLInputElement).value;
+    const email = (document.getElementById("user-email") as HTMLInputElement).value;
+
+    try {
+      let currentUser = auth.currentUser;
+      if (!currentUser) {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
+      }
+
+      await setDoc(doc(db, "users", currentUser.uid), {
+        name,
+        whatsapp,
+        email,
+        isVerified: false,
+        createdAt: new Date().toISOString()
+      });
+
+      // Buat pesan WhatsApp otomatis
+      const adminNumber = "6285794506290";
+      const text = `Assalamualaikum, saya telah mendaftar di Bab 1 dan ingin meminta aktivasi akses E-Book Komunikasi Efektif ala Nabi.\n\nBerikut data saya:\nNama: ${name}\nWhatsApp: ${whatsapp}\nEmail: ${email}\n\nMohon bantuannya untuk aktifasi akses saya. Terima kasih.`;
+      
+      const waUrl = `https://wa.me/${adminNumber}?text=${encodeURIComponent(text)}`;
+      
+      // Buka WhatsApp di tab baru
+      window.open(waUrl, '_blank');
+
+    } catch (err: any) {
+      if (regError) {
+        regError.textContent = "Gagal mendaftar: " + (err.message || "Terjadi kesalahan");
+        regError.style.display = "block";
+      }
+    }
+  });
+
+  btnRefresh?.addEventListener("click", () => {
+    window.location.reload();
+  });
+</script>
